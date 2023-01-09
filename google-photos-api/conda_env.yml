@@ -1,0 +1,4 @@
+name: photo_sync
+channels:
+  - defaults
+prefix: /home/bruno/miniconda3/envs/photo_sync
