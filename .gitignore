@@ -7,11 +7,12 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+.git
+.idea
 .Python
 build/
 develop-eggs/
 dist/
-downloads/
 eggs/
 .eggs/
 lib/
@@ -104,6 +105,8 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venv_test
+.venv_google
 env/
 venv/
 ENV/
@@ -129,7 +132,13 @@ dmypy.json
 .pyre/
 
 # credentials
-*.credentials/
-./google-photos-api/downloads/
-.media_items_list
-./flickr_api/authentication_file.txt
+*/credentials/*
+*/authentication_file.txt
+
+#files
+*/downloads/*
+*/media_items_list
+
+
+.DS_Store
+**/.DS_Store
