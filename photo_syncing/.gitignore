@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# credentials
+.credentials/*
+.downloads/*
+.media_items_list
+*authentication_file.txt
