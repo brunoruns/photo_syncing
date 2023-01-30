@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # credentials
-.credentials/*
-.downloads/*
+*.credentials/
+./google-photos-api/downloads/
 .media_items_list
-*authentication_file.txt
+./flickr_api/authentication_file.txt
