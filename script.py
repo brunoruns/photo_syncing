@@ -31,17 +31,17 @@ if (os.path.isfile("./last_run.txt")):
     sdate = date(int(stringDate[0:4]),int(stringDate[5:7]), int(stringDate[8:10]))
     print("Previous run at " + stringDate + ", continuing from here on.")
 
-date_list = pd.date_range(sdate,edate-timedelta(days=1),freq='d')
+date_list = pd.date_range(sdate,edate,freq='d') #-timedelta(days=1)
 print(date_list)
 
 #search the correct album
 album_id = google_photos_api.getAlbum("Sync Flickr")
 media_items_df = pd.DataFrame()
 
-for date in date_list:
+for date_item in date_list:
     
     # get a list with all media items for specified date (year, month, day)
-    items_df, media_items_df = google_photos_api.list_of_media_items(year = date.year, month = date.month, day = date.day, album_id=album_id,  media_items_df = media_items_df)
+    items_df, media_items_df = google_photos_api.list_of_media_items(year = date_item.year, month = date_item.month, day = date_item.day, album_id=album_id,  media_items_df = media_items_df)
 
     if len(items_df) > 0:
         # full outer join of items_df and files_list_df, the result is a list of items of the given 
@@ -64,9 +64,9 @@ for date in date_list:
                 f.write(response.content)
                 f.close()
                 
-        print(f'Downloaded items for date: {date.year} / {date.month} / {date.day}')
+        print(f'Downloaded items for date: {date_item.year} / {date_item.month} / {date_item.day}')
     else:
-        print(f'No media items found for date: {date.year} / {date.month} / {date.day}')
+        print(f'No media items found for date: {date_item.year} / {date_item.month} / {date_item.day}')
             
 #save a list of all media items to a csv file
 current_datetime = str(datetime.now())
@@ -96,7 +96,7 @@ required_index = 0;
 for i in range(0, len(photosets)):
     #print(photosets[i].title)
     if (photosets[i].title == "sync google photos sara"):
-        print("required index: " + str(i))
+        #print("required index: " + str(i))
         required_index = i
 auto_album = photosets[required_index]
 
@@ -105,20 +105,27 @@ auto_album = photosets[required_index]
 source_folder = "./google-photos-api/downloads/"
 files_list = os.listdir(source_folder)
 
+#latest date
+latest_date = sdate #the previous known last date
+
 for file_name in files_list:
     a_photo = flickr_api.upload(photo_file = os.path.join(source_folder, file_name), title = file_name, is_public="0")
+    newDateString = str(a_photo.getInfo()['taken'])
+    year = int(newDateString[0:4])
+    month = int(newDateString[5:7])
+    day = int(newDateString[8:10])
+    newDate = date(year,month,day)
+    if (newDate > latest_date):
+        latest_date = newDate
     auto_album.addPhoto(photo = a_photo)
     print("Photo " + file_name + " succesfully added." )
 
 print("All files uploaded to Flickr.")
 print("Cleaning up...")
 
-#TODO writing latest known date of sync
-edate = date.today()
 with open('last_run.txt', 'w') as f:
-    f.write(str(edate))
+    f.write(str(latest_date))
     
-
 #cleaning up files
 import os, shutil
 for filename in os.listdir(source_folder):
@@ -130,3 +137,5 @@ for filename in os.listdir(source_folder):
             shutil.rmtree(file_path)
     except Exception as e:
         print('Failed to delete %s. Reason: %s' % (file_path, e))
+
+print("Done.")
