@@ -109,7 +109,14 @@ files_list = os.listdir(source_folder)
 latest_date = sdate #the previous known last date
 
 for file_name in files_list:
-    a_photo = flickr_api.upload(photo_file = os.path.join(source_folder, file_name), title = file_name, is_public="0")
+
+    #video as video
+    if ((filename[-3:] == 'mp4') | (filename[-3:] == 'mov') | (filename[-4:] == 'mpeg')):
+        content_type = 3 #for video
+    else:
+        content_type = 1 # for photo
+
+    a_photo = flickr_api.upload(photo_file = os.path.join(source_folder, file_name), title = file_name, content_type=content_type, is_public="0")
     newDateString = str(a_photo.getInfo()['taken'])
     year = int(newDateString[0:4])
     month = int(newDateString[5:7])
