@@ -1,6 +1,7 @@
 import GooglePhotosAPI as gpAPI
 import pandas as pd
 from datetime import date, timedelta, datetime
+import pytz
 import requests
 import os
 import json
@@ -20,7 +21,7 @@ files_list_df = files_list_df.rename(columns={0: "filename"})
 #print(files_list_df.head(2))
 
 # create a list with all dates between start date and today
-sdate = date(2023,1,7)   # start date
+sdate = datetime(2023,1,7, tzinfo=pytz.utc)   # start date
 edate = date.today()
 
 #take the logged end date
@@ -28,45 +29,43 @@ if (os.path.isfile("./last_run.txt")):
     stringDate = ""
     with open('last_run.txt', 'r') as f:
         stringDate = f.read()
-    sdate = date(int(stringDate[0:4]),int(stringDate[5:7]), int(stringDate[8:10]))
+    sdate = datetime(int(stringDate[0:4]),int(stringDate[5:7]), int(stringDate[8:10]), tzinfo=pytz.utc)
     print("Previous run at " + stringDate + ", continuing from here on.")
-
-date_list = pd.date_range(sdate,edate,freq='d') #-timedelta(days=1)
-print(date_list)
 
 #search the correct album
 album_id = google_photos_api.getAlbum("Sync Flickr")
 media_items_df = pd.DataFrame()
-
-for date_item in date_list:
     
-    # get a list with all media items for specified date (year, month, day)
-    items_df, media_items_df = google_photos_api.list_of_media_items(year = date_item.year, month = date_item.month, day = date_item.day, album_id=album_id,  media_items_df = media_items_df)
+# get a list with all media items for specified date (year, month, day)
+items_df, media_items_df = google_photos_api.list_of_media_items(fromDay = sdate, album_id=album_id,  media_items_df = media_items_df)
 
-    if len(items_df) > 0:
-        # full outer join of items_df and files_list_df, the result is a list of items of the given 
-        #day that have not been downloaded yet
-        if len(files_list_df) > 0:
-            items_not_yet_downloaded_df = pd.merge(items_df, files_list_df,on='filename',how='left')
-            items_not_yet_downloaded_df.head(2)
-        else:
-            items_not_yet_downloaded_df = items_df
+print(items_df.head())
+print(media_items_df.head())
 
-        # download all items in items_not_yet_downloaded
-        for index, item in items_not_yet_downloaded_df.iterrows():
-            url = item.baseUrl + "=d" #the =d is for downloading using all metadata
-            response = requests.get(url)
-
-            file_name = item.filename
-            destination_folder = './google-photos-api/downloads/'
-
-            with open(os.path.join(destination_folder, file_name), 'wb') as f:
-                f.write(response.content)
-                f.close()
-                
-        print(f'Downloaded items for date: {date_item.year} / {date_item.month} / {date_item.day}')
+if len(items_df) > 0:
+    # full outer join of items_df and files_list_df, the result is a list of items of the given 
+    #day that have not been downloaded yet
+    if len(files_list_df) > 0:
+        items_not_yet_downloaded_df = pd.merge(items_df, files_list_df,on='filename',how='left')
+        items_not_yet_downloaded_df.head(2)
     else:
-        print(f'No media items found for date: {date_item.year} / {date_item.month} / {date_item.day}')
+        items_not_yet_downloaded_df = items_df
+
+    # download all items in items_not_yet_downloaded
+    for index, item in items_not_yet_downloaded_df.iterrows():
+        url = item.baseUrl + "=d" #the =d is for downloading using all metadata
+        response = requests.get(url)
+
+        file_name = item.filename
+        destination_folder = './google-photos-api/downloads/'
+
+        with open(os.path.join(destination_folder, file_name), 'wb') as f:
+            f.write(response.content)
+            f.close()
+            
+    print(f'Downloaded items since date: {sdate.year} / {sdate.month} / {sdate.day}')
+else:
+    print(f'No media items found since date: {sdate.year} / {sdate.month} / {sdate.day}')
             
 #save a list of all media items to a csv file
 current_datetime = str(datetime.now())

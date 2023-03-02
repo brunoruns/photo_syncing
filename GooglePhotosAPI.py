@@ -76,22 +76,25 @@ class GooglePhotosApi:
         return None
 
 
-    def get_response_from_medium_api(self, year, month, day, album_id=None):
+    def get_response_from_medium_api(self, album_id=None, page_token=None):
         url = 'https://photoslibrary.googleapis.com/v1/mediaItems:search'
         creds = self.cred
 
         payload = {
-                    "filters": {
-                    "dateFilter": {
-                        "dates": [
-                        {
-                            "day": day,
-                            "month": month,
-                            "year": year
-                        }
-                        ]
-                    }
-                    }
+                    "albumId": album_id, #added missing filter on album_id
+                    "pageToken": page_token, #navigating pages
+                    
+                    #"filters": {
+                    #   "dateFilter": {
+                    #        "dates": [
+                    #       {
+                    #            "day": day,
+                    #           "month": month,
+                    #           "year": year
+                    #       }
+                    #       ]
+                    #   }
+                    #}
                 }
         headers = {
             'content-type': 'application/json',
@@ -105,34 +108,63 @@ class GooglePhotosApi:
         
         return(res)
 
-    def list_of_media_items(self, year, month, day, album_id, media_items_df):
+    def list_of_media_items(self, fromDay, album_id, media_items_df):
         '''
         Args:
             year, month, day, album_id: day for the filter of the API call 
             media_items_df: existing data frame with all find media items so far
+            fromDay: day from which to start filtering onwards in time
         Return:
             media_items_df: media items data frame extended by the articles found for the specified tag
             items_df: media items uploaded on specified date
         '''
 
         items_list_df = pd.DataFrame()
-        
-        # create request for specified date
-        response = self.get_response_from_medium_api(year, month, day, album_id)
 
-        try:
-            for item in response.json()['mediaItems']:
-                items_df = pd.DataFrame(item)
-                items_df = items_df.rename(columns={"mediaMetadata": "creationTime"})
-                items_df.set_index('creationTime')
-                items_df = items_df[items_df.index == 'creationTime']
+        page_token = None
+        page_token_changed = True
 
-                #append the existing media_items data frame
-                items_list_df = pd.concat([items_list_df, items_df])
-                media_items_df = pd.concat([media_items_df, items_df])
+        while page_token_changed:
         
-        except:
-            print(response.text)
+            page_token_changed = False
+            # create request for specified date
+            response = self.get_response_from_medium_api(album_id, page_token)
+
+            try:
+                for item in response.json()['mediaItems']:
+                    items_df = pd.DataFrame(item)
+                    items_df = items_df.rename(columns={"mediaMetadata": "creationTime"})
+                    items_df.set_index('creationTime')
+                    items_df = items_df[items_df.index == 'creationTime']
+
+                    items_df['creationTime'] = pd.to_datetime(items_df['creationTime'])
+
+                    #items_df['year'] = items_df['creationTime'].dt.year
+                    #items_df['month'] = items_df['creationTime'].dt.month
+                    #items_df['day'] = items_df['creationTime'].dt.day
+
+                    #filtering on the correct date, this unfortunately does not work with the API
+                    #items_df = items_df[ (items_df['year'] == year) &
+                    #                        (items_df['month'] == month) &
+                    #                        (items_df['day'] == day) ]
+                    
+                    items_df = items_df[ (items_df['creationTime'] > fromDay) ]
+
+                    #append the existing media_items data frame
+                    items_list_df = pd.concat([items_list_df, items_df])
+                    media_items_df = pd.concat([media_items_df, items_df])
+
+            except:
+                #print(response.text)
+                print('Failed to parse response')
+
+            #handling next page
+            try:
+                page_token = response.json()['nextPageToken']
+                page_token_changed = True
+                #print("scanned page number "  + page_number)
+            except:
+                print('No more pages')
 
         return(items_list_df, media_items_df)
 
