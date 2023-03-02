@@ -42,6 +42,7 @@ class GooglePhotosApi:
         # if there is no pickle file with stored credentials, create one using google_auth_oauthlib.flow
         if not self.cred or not self.cred.valid:
             if self.cred and self.cred.expired and self.cred.refresh_token:
+                #quick fix to refresh the token: skip this and replace the condition with if False: 
                 self.cred.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(self.client_secret_file, self.scopes)
