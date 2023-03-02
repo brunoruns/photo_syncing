@@ -120,7 +120,7 @@ for file_name in files_list:
     year = int(newDateString[0:4])
     month = int(newDateString[5:7])
     day = int(newDateString[8:10])
-    newDate = date(year,month,day)
+    newDate = datetime(year,month,day, tzinfo=pytz.utc)
     if (newDate > latest_date):
         latest_date = newDate
     auto_album.addPhoto(photo = a_photo)
