@@ -123,8 +123,23 @@ for file_name in files_list:
     newDate = datetime(year,month,day, tzinfo=pytz.utc)
     if (newDate > latest_date):
         latest_date = newDate
-    auto_album.addPhoto(photo = a_photo)
-    print("Photo " + file_name + " succesfully added." )
+    
+    try: 
+        auto_album.addPhoto(photo = a_photo)
+        print("Photo " + file_name + " succesfully added." )
+    except Exception as e:
+        file_path = os.path.join(source_folder, filename)
+        print('Failed to upload to flickr %s. Reason: %s' % (file_path, e))
+
+    file_path = os.path.join(source_folder, filename)
+    try:
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+            print('File ' + file_name + 'correctly deleted.')
+    except Exception as e:
+        print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 print("All files uploaded to Flickr.")
 print("Cleaning up...")
